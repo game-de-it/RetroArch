@@ -6,7 +6,8 @@ GBA LCD preset.
 
 ## Compatibility scope
 
-The initial profile targets the KONKR Pocket ADVANCE / GT78-VN. The APK is not
+The initial profile targets the KONKR Pocket ADVANCE (Android model: GT78-VN).
+The APK is not
 locked to that product name, but its defaults assume all of the following:
 
 - Android on an `arm64-v8a` device
