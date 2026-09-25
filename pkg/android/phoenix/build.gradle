@@ -48,7 +48,7 @@ android {
       }
     }
     versionCode = (System.currentTimeMillis() / 1000).toInteger()
-    versionName "${getManifestAttribute("versionName")}_GIT"
+    versionName "${getManifestAttribute("versionName")}_GBA_LCD_4"
   }
 
   android {
@@ -68,12 +68,12 @@ android {
     }
     aarch64 {
       applicationIdSuffix '.aarch64'
-      resValue "string", "app_name", "RetroArch (AArch64)"
+      resValue "string", "app_name", "RetroArch GBA LCD"
       buildConfigField "boolean", "PLAY_STORE_BUILD", "false"
 
       dimension "variant"
       ndk {
-        abiFilters 'arm64-v8a', 'x86_64'
+        abiFilters 'arm64-v8a'
       }
     }
     ra32 {

@@ -708,6 +708,7 @@ typedef struct
     * a single stale frame of sensor data. */
    float sensor_gyroscope_cache[3];
    float sensor_accelerometer_cache[3];
+   bool sensor_accelerometer_filter_valid;
 
    /* Accelerometer rest position capture state.
     * Same thread-safety model as the caches above:
@@ -730,6 +731,8 @@ typedef struct
    retro_atomic_int_t sensor_snap_seq;
    retro_atomic_int_t sensor_snap_bits[9];
    bool frontend_sensors_enabled;
+   unsigned frontend_accel_rate;
+   unsigned frontend_gyro_rate;
    unsigned core_accel_rate; /* >0 means core wants accel at this rate */
    unsigned core_gyro_rate;  /* >0 means core wants gyro at this rate */
 } input_driver_state_t;

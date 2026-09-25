@@ -1,0 +1,13 @@
+RetroArch
+Copyright the RetroArch contributors.
+Licensed under GNU General Public License version 3 or later.
+Source: https://github.com/libretro/RetroArch
+
+RetroArch Assets
+Copyright the libretro contributors and individual asset authors.
+See the bundled assets/COPYING file for license details.
+
+mGBA libretro core
+Copyright the mGBA contributors.
+Licensed under Mozilla Public License 2.0.
+Source: https://github.com/libretro/mgba

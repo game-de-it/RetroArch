@@ -17,6 +17,7 @@
 #include <SLES/OpenSLES.h>
 #ifdef ANDROID
 #include <SLES/OpenSLES_Android.h>
+#include <SLES/OpenSLES_AndroidConfiguration.h>
 #endif
 
 #include <string.h>
@@ -238,8 +239,17 @@ static void *sl_init(const char *device, unsigned rate, unsigned latency,
    SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {0};
    SLDataLocator_OutputMix loc_outmix              = {0};
    SLresult res                                    = 0;
+#ifdef ANDROID
+   const SLInterfaceID ids[] = {
+      SL_IID_ANDROIDSIMPLEBUFFERQUEUE,
+      SL_IID_ANDROIDCONFIGURATION
+   };
+   const SLboolean reqs[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+   SLAndroidConfigurationItf android_config = NULL;
+#else
    SLInterfaceID                                id = SL_IID_ANDROIDSIMPLEBUFFERQUEUE;
    SLboolean                                req    = SL_BOOLEAN_TRUE;
+#endif
    sl_t                                        *sl = (sl_t*)calloc(1, sizeof(sl_t));
 
    (void)device;
@@ -334,7 +344,12 @@ static void *sl_init(const char *device, unsigned rate, unsigned latency,
       audio_src.pFormat         = &fmt_pcm_ex;
 
       res = SLEngineItf_CreateAudioPlayer(sl->engine, &sl->buffer_queue_object,
-            &audio_src, &audio_sink, 1, &id, &req);
+            &audio_src, &audio_sink,
+#ifdef ANDROID
+            2, ids, reqs);
+#else
+            1, &id, &req);
+#endif
       if (res == SL_RESULT_SUCCESS)
       {
          sl->use_float = true;
@@ -367,7 +382,12 @@ static void *sl_init(const char *device, unsigned rate, unsigned latency,
    audio_src.pFormat         = &fmt_pcm_ex;
 
    res = SLEngineItf_CreateAudioPlayer(sl->engine, &sl->buffer_queue_object,
-         &audio_src, &audio_sink, 1, &id, &req);
+         &audio_src, &audio_sink,
+#ifdef ANDROID
+         2, ids, reqs);
+#else
+         1, &id, &req);
+#endif
    if (res == SL_RESULT_SUCCESS)
    {
       sl->use_float = true;
@@ -397,10 +417,25 @@ static void *sl_init(const char *device, unsigned rate, unsigned latency,
 
       GOTO_IF_FAIL(SLEngineItf_CreateAudioPlayer(sl->engine, &sl->buffer_queue_object,
                &audio_src, &audio_sink,
+#ifdef ANDROID
+               2, ids, reqs));
+#else
                1, &id, &req));
+#endif
       sl->channels           = 2;
       frame_size             = 2 * sizeof(int16_t);
    }
+#ifdef ANDROID
+   GOTO_IF_FAIL(SLObjectItf_GetInterface(sl->buffer_queue_object,
+            SL_IID_ANDROIDCONFIGURATION, &android_config));
+   {
+      SLuint32 performance_mode = SL_ANDROID_PERFORMANCE_NONE;
+      GOTO_IF_FAIL((*android_config)->SetConfiguration(android_config,
+               SL_ANDROID_KEY_PERFORMANCE_MODE, &performance_mode,
+               sizeof(performance_mode)));
+      RARCH_LOG("[OpenSL] Requested Android performance mode NONE (effects enabled).\n");
+   }
+#endif
    GOTO_IF_FAIL(SLObjectItf_Realize(sl->buffer_queue_object, SL_BOOLEAN_FALSE));
 
    sl->buf_size               = frames_per_block * frame_size;

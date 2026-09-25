@@ -3024,6 +3024,11 @@ static bool android_input_set_sensor_state(void *data, unsigned port,
       if (event_rate == 0)
          event_rate = DEFAULT_ASENSOR_EVENT_RATE;
 
+      /* Shader-driven panel lighting needs smooth orientation updates even
+       * when a core asks for a lower accelerometer polling rate. */
+      if (action == RETRO_SENSOR_ACCELEROMETER_ENABLE && event_rate < 60)
+         event_rate = 60;
+
       switch (action)
       {
          case RETRO_SENSOR_ACCELEROMETER_ENABLE:

@@ -7708,18 +7708,44 @@ void input_driver_poll(void)
     * from shaders and/or core. Setting gates everything. */
    if (settings->bools.input_sensors_enable)
    {
-      bool want = retro_atomic_load_acquire_int(
-               &input_st->shader_uses_sensors)
+      bool shader_wants = retro_atomic_load_acquire_int(
+               &input_st->shader_uses_sensors) != 0;
+      bool want = shader_wants
          || input_st->core_accel_rate
          || input_st->core_gyro_rate;
+      unsigned accel_rate = input_st->core_accel_rate;
+      unsigned gyro_rate  = input_st->core_gyro_rate;
 
-      if (want && !input_st->frontend_sensors_enabled)
+      /* A core may request a low sensor rate even when a shader also needs
+       * motion data. Keep the core request, but do not let it throttle the
+       * per-frame lighting uniforms below 60 Hz. */
+      if (shader_wants)
       {
+         if (accel_rate < 60)
+            accel_rate = 60;
+         if (gyro_rate < 60)
+            gyro_rate = 60;
+      }
+
+      if (want && (!input_st->frontend_sensors_enabled
+            || input_st->frontend_accel_rate != accel_rate
+            || input_st->frontend_gyro_rate != gyro_rate))
+      {
+         /* Android ignores an enable request for an already-active sensor,
+          * including its new sample rate. Re-register when demand changes. */
+         if (input_st->frontend_sensors_enabled)
+         {
+            input_set_sensor_state(0, RETRO_SENSOR_ACCELEROMETER_DISABLE, 0);
+            input_set_sensor_state(0, RETRO_SENSOR_GYROSCOPE_DISABLE, 0);
+         }
          input_set_sensor_state(0, RETRO_SENSOR_ACCELEROMETER_ENABLE,
-               input_st->core_accel_rate ? input_st->core_accel_rate : 60);
+               accel_rate ? accel_rate : 60);
          input_set_sensor_state(0, RETRO_SENSOR_GYROSCOPE_ENABLE,
-               input_st->core_gyro_rate ? input_st->core_gyro_rate : 60);
+               gyro_rate ? gyro_rate : 60);
          input_st->frontend_sensors_enabled = true;
+         input_st->frontend_accel_rate = accel_rate ? accel_rate : 60;
+         input_st->frontend_gyro_rate  = gyro_rate ? gyro_rate : 60;
+         input_st->sensor_accelerometer_filter_valid = false;
          input_sensor_start_rest_capture();
       }
       else if (!want && input_st->frontend_sensors_enabled)
@@ -7727,6 +7753,9 @@ void input_driver_poll(void)
          input_set_sensor_state(0, RETRO_SENSOR_ACCELEROMETER_DISABLE, 0);
          input_set_sensor_state(0, RETRO_SENSOR_GYROSCOPE_DISABLE, 0);
          input_st->frontend_sensors_enabled = false;
+         input_st->frontend_accel_rate = 0;
+         input_st->frontend_gyro_rate  = 0;
+         input_st->sensor_accelerometer_filter_valid = false;
       }
    }
    else if (input_st->frontend_sensors_enabled)
@@ -7734,6 +7763,9 @@ void input_driver_poll(void)
       input_set_sensor_state(0, RETRO_SENSOR_ACCELEROMETER_DISABLE, 0);
       input_set_sensor_state(0, RETRO_SENSOR_GYROSCOPE_DISABLE, 0);
       input_st->frontend_sensors_enabled = false;
+      input_st->frontend_accel_rate = 0;
+      input_st->frontend_gyro_rate  = 0;
+      input_st->sensor_accelerometer_filter_valid = false;
    }
 
    /* Update accelerometer rest position capture (runs for ~30 frames
@@ -7756,15 +7788,34 @@ void input_driver_poll(void)
             sizeof(input_st->sensor_gyroscope_cache));
       memset(input_st->sensor_accelerometer_cache, 0,
             sizeof(input_st->sensor_accelerometer_cache));
+      input_st->sensor_accelerometer_filter_valid = false;
    }
    else
    {
+      float accelerometer_sample[3];
       input_st->sensor_gyroscope_cache[0]     = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_GYROSCOPE_X);
       input_st->sensor_gyroscope_cache[1]     = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_GYROSCOPE_Y);
       input_st->sensor_gyroscope_cache[2]     = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_GYROSCOPE_Z);
-      input_st->sensor_accelerometer_cache[0] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_X);
-      input_st->sensor_accelerometer_cache[1] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_Y);
-      input_st->sensor_accelerometer_cache[2] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_Z);
+      accelerometer_sample[0] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_X);
+      accelerometer_sample[1] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_Y);
+      accelerometer_sample[2] = input_get_sensor_state_internal(settings, 0, RETRO_SENSOR_ACCELEROMETER_Z);
+
+      if (!input_st->sensor_accelerometer_filter_valid)
+      {
+         memcpy(input_st->sensor_accelerometer_cache, accelerometer_sample,
+               sizeof(input_st->sensor_accelerometer_cache));
+         input_st->sensor_accelerometer_filter_valid = true;
+      }
+      else
+      {
+         const float accelerometer_filter_alpha = 0.20f;
+
+         for (i = 0; i < 3; i++)
+            input_st->sensor_accelerometer_cache[i] +=
+               accelerometer_filter_alpha *
+               (accelerometer_sample[i] -
+                input_st->sensor_accelerometer_cache[i]);
+      }
    }
 
    /* Publish the three vec3s as one coherent snapshot: the shader
