@@ -11,3 +11,7 @@ mGBA libretro core
 Copyright the mGBA contributors.
 Licensed under Mozilla Public License 2.0.
 Source: https://github.com/libretro/mgba
+
+GBA Native LCD shader, tools and documentation
+Copyright (c) 2026 game-de-it.
+Licensed under the MIT License.

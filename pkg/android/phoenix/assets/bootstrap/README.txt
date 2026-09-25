@@ -11,3 +11,7 @@ the bundle version changes:
 The bundled retroarch.cfg is installed only when no user configuration exists.
 User changes are preserved across APK updates. Saves, states, screenshots and
 other writable data use /storage/emulated/0/RetroArch-gyrotest/.
+
+The GBA Native LCD project files are MIT licensed. RetroArch remains
+GPL-3.0-or-later and the bundled mGBA core remains MPL-2.0. License texts are
+included in bootstrap/licenses/.
