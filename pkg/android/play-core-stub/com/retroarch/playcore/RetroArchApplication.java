@@ -3,6 +3,7 @@ package com.retroarch.playcore;
 import android.app.Application;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
@@ -21,7 +22,7 @@ public class RetroArchApplication extends Application
     private static final String TAG = "RetroArchBootstrap";
     private static final String PREFS = "bundled_content";
     private static final String VERSION_KEY = "installed_version";
-    private static final int BUNDLE_VERSION = 3;
+    private static final int BUNDLE_VERSION = 5;
 
     @Override
     public void onCreate()
@@ -47,7 +48,20 @@ public class RetroArchApplication extends Application
 
         if (bundleUpgrade)
         {
-            copyAssetTree("bootstrap/private", new File(getApplicationInfo().dataDir), true);
+            File privateData = new File(getApplicationInfo().dataDir);
+            copyAssetTree("bootstrap/private", privateData, true);
+
+            File sharedShaders = new File(Environment.getExternalStorageDirectory(),
+                    "RetroArch/shaders");
+            copyAssetTree("bootstrap/external/shaders", sharedShaders, true);
+
+            // These were temporary presets in pre-release v0.1.1 builds.
+            // Only delete directories previously owned by this APK.
+            deleteManagedTree(new File(sharedShaders, "gba-rugged-preview"));
+            deleteManagedTree(new File(sharedShaders, "gba-dev-active"));
+            deleteManagedTree(new File(sharedShaders, "gba-native-lcd-v0.1.0"));
+            deleteManagedTree(new File(privateData,
+                    "shaders/gba-dot-aperture-preview-1"));
         }
 
         File externalFiles = getExternalFilesDir(null);
@@ -69,6 +83,8 @@ public class RetroArchApplication extends Application
         {
             ensureConfigValue(config, "input_poll_type_behavior", "2");
             ensureConfigValue(config, "vrr_runloop_enable", "false");
+            ensureConfigValue(config, "video_shader_dir",
+                    "/storage/emulated/0/RetroArch/shaders");
             preferences.edit().putInt(VERSION_KEY, BUNDLE_VERSION).apply();
         }
     }
@@ -155,5 +171,23 @@ public class RetroArchApplication extends Application
 
         if (destination.getName().endsWith(".so"))
             destination.setExecutable(true, false);
+    }
+
+    private void deleteManagedTree(File file) throws IOException
+    {
+        if (!file.exists())
+            return;
+
+        if (file.isDirectory())
+        {
+            File[] children = file.listFiles();
+            if (children == null)
+                throw new IOException("Unable to list " + file);
+            for (File child : children)
+                deleteManagedTree(child);
+        }
+
+        if (!file.delete())
+            throw new IOException("Unable to delete " + file);
     }
 }

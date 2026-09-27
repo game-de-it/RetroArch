@@ -2665,6 +2665,12 @@ static void android_input_poll(void *data)
          return;
       }
    }
+
+   /* Some Android sensor HALs register the event queue successfully but do
+    * not wake the native looper with LOOPER_ID_USER. Drain it once per input
+    * poll as a compatibility fallback. The normal looper path has already
+    * consumed all pending events on devices where notifications work. */
+   android_input_poll_user(android);
 }
 
 /* Dismiss queued input from before the input driver exists. ALooper

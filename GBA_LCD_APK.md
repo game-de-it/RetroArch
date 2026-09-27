@@ -27,20 +27,25 @@ an EQ benefit.
 
 - RetroArch with accelerometer shader support and a 0.20 low-pass filter
 - mGBA libretro core and core information
-- Reflective GBA LCD shader, RGB curve LUT and mGBA automatic preset
+- Completed `native-lcd-v0.1.1` shader, legacy `native-lcd-v0.1.0`, RGB curve
+  LUT and mGBA automatic preset
 - RGUI menu assets, including the Japanese bitmap font
 - A configuration migrated from the device's existing RetroArch installation,
   with late input polling and fixed-refresh-rate synchronization defaults
 
 ## Installed paths
 
-Managed files are installed under `/data/user/0/com.retroarch.aarch64/`:
+Private managed files are installed under `/data/user/0/com.retroarch.aarch64/`:
 
 - `assets/rgui/`
 - `config/mGBA/`
 - `cores/mgba_libretro_android.so`
 - `info/mgba_libretro.info`
-- `shaders/gba-reflective-v2/`
+
+Selectable shader presets are installed under the shared shader root:
+
+- `/storage/emulated/0/RetroArch/shaders/native-lcd-v0.1.1/` (default)
+- `/storage/emulated/0/RetroArch/shaders/native-lcd-v0.1.0/` (legacy)
 
 Writable user data is kept under `/storage/emulated/0/RetroArch-gyrotest/` so
 APK removal does not delete saves, states, screenshots or playlists. The main
@@ -53,10 +58,12 @@ Bundled managed files are refreshed when `BUNDLE_VERSION` changes. The bundled
 `retroarch.cfg` is copied only when the user does not already have one, so APK
 updates preserve settings. Existing installs should back up and migrate the
 configuration explicitly when adopting a new default configuration. The
-required `input_sensors_enable` key is repaired automatically without replacing
-the rest of the user's configuration. Bundle version 3 migrates existing
-installations to late input polling and disables the VRR-only exact content
-framerate mode once; subsequent user changes remain persistent.
+required `input_sensors_enable` and shared shader-directory keys are repaired
+automatically without replacing the rest of the user's configuration. Bundle
+version 3 migrated existing installations to late input polling and disabled
+the VRR-only exact content-framerate mode once. Bundle version 5 installs the
+v0.1.1 and legacy v0.1.0 shader directories and removes only APK-owned preview
+directories; subsequent user changes remain persistent.
 
 ## Build
 

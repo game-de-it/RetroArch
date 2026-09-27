@@ -47,8 +47,9 @@ android {
         arguments "-j${Runtime.runtime.availableProcessors()}"
       }
     }
-    versionCode = (System.currentTimeMillis() / 1000).toInteger()
-    versionName "${getManifestAttribute("versionName")}_GBA_LCD_0.1.0"
+    versionCode = Math.max((System.currentTimeMillis() / 1000).toInteger(),
+                           1790470007)
+    versionName "${getManifestAttribute("versionName")}_GBA_LCD_v0.1.1"
   }
 
   android {
